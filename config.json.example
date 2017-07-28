@@ -1,0 +1,6 @@
+{
+"SCENE_FLOW_HOME" : "/home/morsic/datasets/Driving",
+"KITTI_HOME" : "/home/morsic/datasets/kitti",
+"KITTI__ODOMETRY_HOME" : "/home/morsic/datasets/odometry",
+"TF_RECORDS_HOME" : "/home/morsic/datasets/tfrecords/"
+}
