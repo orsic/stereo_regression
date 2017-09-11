@@ -33,6 +33,7 @@ def main(_):
         'train_valid': [],
         'valid': [],
     }
+    plt.title(FLAGS.log)
     for phase in metrics:
         for epoch in sorted(metrics[phase].keys()):
             mean_epoch_losses[phase].append(np.mean(metrics[phase][epoch]))

@@ -1,5 +1,6 @@
 import numpy as np
 from PIL import Image
+import png
 
 
 def load_disparity(path):
@@ -8,6 +9,13 @@ def load_disparity(path):
     if len(disparity.shape) > 2:
         disparity = disparity[:, :, 0]
     return disparity.astype('float32')
+
+
+def store_disparity(disparity, path):
+    result = (disparity * 256.0).astype('uint16')
+    writer = png.Writer(size=result.shape[::-1], greyscale=True, bitdepth=16)
+    with open(path, 'wb') as fp:
+        writer.write(fp, result)
 
 
 def padding(img, size):

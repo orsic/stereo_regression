@@ -11,7 +11,8 @@ class Dataset():
     def __getattr__(self, item):
         assert item in self.paths
         for key in ['left', 'right']:
-            assert key in self.paths[item][0]
+            if len(self.paths[item]) > 0:
+                assert key in self.paths[item][0]
         return self.generator(item)
 
     def generator(self, subset):

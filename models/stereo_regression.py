@@ -20,7 +20,7 @@ class StereoRegression():
         projection = self.regression.projections[cost_volume]
         self.classification.build(projection)
         output = self.classification.outputs[projection]
-        self.loss.build(output, placeholders.d)
+        self.loss.build(output, placeholders)
         loss = self.loss.losses[output]
 
         self.unary_outputs[placeholders] = unary_outputs

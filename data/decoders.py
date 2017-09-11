@@ -85,38 +85,41 @@ class KittiOdometryDecoder(Decoder):
     }
 
     def decode(self, serialized_example):
-        features_to_decode = self.tf_features
+        with tf.variable_scope('decode'):
+            features_to_decode = self.tf_features
 
-        features = tf.parse_single_example(serialized_example, features=features_to_decode)
+            features = tf.parse_single_example(serialized_example, features=features_to_decode)
 
-        width = tf.cast(features['width'], tf.int32)
-        height = tf.cast(features['height'], tf.int32)
-        channels = tf.cast(features['channels'], tf.int32)
+            width = tf.cast(features['width'], tf.int32)
+            height = tf.cast(features['height'], tf.int32)
+            channels = tf.constant(3, tf.int32)  # tf.cast(features['channels'], tf.int32)
 
-        target_w = tf.constant(self.shapes.W, dtype=tf.int32)
-        target_h = tf.constant(self.shapes.H, dtype=tf.int32)
+            target_w = tf.constant(self.shapes.W, dtype=tf.int32) if self.shapes is not None else -1
+            target_h = tf.constant(self.shapes.H, dtype=tf.int32) if self.shapes is not None else -1
 
-        size_def = SizeDef(width, height, target_w, target_h)
-        crop_def = get_random_image_crop_tf(size_def, self.config.randomise)
+            size_def = SizeDef(width, height, target_w, target_h)
 
-        l = tf.decode_raw(features['left'], tf.float32)
-        r = tf.decode_raw(features['right'], tf.float32)
+            l = tf.decode_raw(features['left'], tf.float32)
+            r = tf.decode_raw(features['right'], tf.float32)
 
-        image_shape = tf.stack([size_def.height, size_def.width, channels])
+            image_shape = tf.stack([size_def.height, size_def.width, channels])
 
-        l = tf.reshape(l, image_shape)
-        r = tf.reshape(r, image_shape)
+            l = tf.reshape(l, image_shape)
+            r = tf.reshape(r, image_shape)
 
-        l = tf.slice(l, crop_def.image_begin, crop_def.image_size, name='image_left')
-        r = tf.slice(r, crop_def.image_begin, crop_def.image_size, name='image_right')
+        if self.shapes is not None:
+            with tf.variable_scope('crop'):
+                crop_def = get_random_image_crop_tf(size_def, self.is_training)
+                l = tf.slice(l, crop_def.image_begin, crop_def.image_size, name='image_left')
+                r = tf.slice(r, crop_def.image_begin, crop_def.image_size, name='image_right')
 
-        l, r = tf.train.batch([l, r], self.config.batch_size, self.config.num_threads, self.config.capacity)
+        l, r = tf.train.batch([l, r], self.config.batch_size, self.config.num_threads, self.config.capacity,
+                                 dynamic_pad=True)
 
         placeholders = dict()
         placeholders['l'] = l
         placeholders['r'] = r
-        placeholders['d'] = None
-        placeholders['name'] = tf.decode_raw(features['name'], tf.string)
+        placeholders['name'] = features['name']
 
         return namedtuple('Placeholders', placeholders.keys())(**placeholders)
 

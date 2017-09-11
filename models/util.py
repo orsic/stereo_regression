@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 
 def conv_block(inputs, order, **kwargs):
@@ -113,3 +114,45 @@ def conv_relu_bn_3d_trans(inputs, **kwargs):
         return tf.contrib.layers.batch_norm(
             conv, activation_fn=tf.nn.relu, is_training=is_training, reuse=reuse, trainable=trainable, scope=scope
         )
+
+
+def make_kernel(a):
+    """Transform a 2D array into a convolution kernel"""
+    a = np.asarray(a)
+    a = a.reshape(list(a.shape) + [1, 1])
+    return tf.constant(a, dtype=1)
+
+
+def simple_conv(x, k):
+    """A simplified 2D convolution operation"""
+    y = tf.nn.depthwise_conv2d(x, k, [1, 1, 1, 1], padding='SAME')
+    return y
+
+
+def laplace(x):
+    """Compute the 2D laplacian of an array"""
+    laplace_k = make_kernel([[0.5, 1.0, 0.5],
+                             [1.0, -6., 1.0],
+                             [0.5, 1.0, 0.5]])
+    return simple_conv(x, laplace_k)
+
+
+def dssim(x, y, ksize):
+    c1 = tf.constant(6.5, tf.float32)  # (k1 * L) ** 2
+    c2 = tf.constant(58.5, tf.float32)  # (k2 * L) ** 2
+
+    ksizes = (1, ksize, ksize, 1)
+
+    mu_x = tf.nn.avg_pool(x, ksize=ksizes, strides=(1, 1, 1, 1), padding='VALID')
+    mu_y = tf.nn.avg_pool(y, ksize=ksizes, strides=(1, 1, 1, 1), padding='VALID')
+
+    sigma_x = tf.nn.avg_pool(x ** 2, ksize=ksizes, strides=(1, 1, 1, 1), padding='VALID') - mu_x ** 2
+    sigma_y = tf.nn.avg_pool(y ** 2, ksize=ksizes, strides=(1, 1, 1, 1), padding='VALID') - mu_y ** 2
+    sigma_xy = tf.nn.avg_pool(x * y, ksize=ksizes, strides=(1, 1, 1, 1), padding='VALID') - mu_x * mu_y
+
+    SSIM_n = (2 * mu_x * mu_y + c1) * (2 * sigma_xy + c2)
+    SSIM_d = (mu_x ** 2 + mu_y ** 2 + c1) * (sigma_x + sigma_y + c2)
+
+    SSIM = SSIM_n / SSIM_d
+
+    return tf.reduce_mean(tf.clip_by_value((1 - SSIM) / 2, 0, 1))

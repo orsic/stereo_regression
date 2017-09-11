@@ -83,7 +83,7 @@ class SceneFlowExample(BaseExample):
 
 example_classes = {
     'kitti': KittiExample,
-    'kitti_submission': KittiExample,
+    'kitti_submission': KittiOdometryExample,
     'sceneflow': SceneFlowExample,
     'odometry': KittiOdometryExample,
 }

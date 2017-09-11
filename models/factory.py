@@ -19,6 +19,8 @@ classifications = {
 
 losses = {
     'abs': loss.Loss,
+    'unsupervised': loss.UnsupervisedLoss,
+    'unsupervised_ssim': loss.UnsupervisedLossSSIM,
 }
 
 

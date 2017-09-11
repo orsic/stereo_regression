@@ -70,7 +70,7 @@ def get_odometry_paths():
 
 
 KITTI_TESTING_HOME = os.path.join(KITTI_HOME, 'testing')
-KITTI_TESTING_LEFT = os.path.join(KITTI_TESTING_HOME, )
+KITTI_TESTING_LEFT = os.path.join(KITTI_TESTING_HOME, 'image_2')
 KITTI_TESTING_RIGHT = os.path.join(KITTI_TESTING_HOME, 'image_3')
 
 
