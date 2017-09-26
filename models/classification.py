@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class SoftArgmin():
     def __init__(self, flags, config):
-        self.max_disp = flags.max_disp
+        self.max_disp = config.get('max_disp', flags.max_disp)
         self._disp_mul = None
         self.outputs = {}
 

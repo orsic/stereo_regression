@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-DatasetSubsets = namedtuple('Generators', 'examples name')
+DatasetSubsets = namedtuple('Generators', 'examples name length')
 
 class Dataset():
     def __init__(self, example_class, paths, name):
@@ -20,4 +20,4 @@ class Dataset():
 
     def __iter__(self):
         for name in self.paths:
-            yield DatasetSubsets(self.generator(name), name)
+            yield DatasetSubsets(self.generator(name), name, len(self.paths[name]))

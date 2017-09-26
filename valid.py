@@ -2,6 +2,7 @@ import tensorflow as tf
 from collections import namedtuple
 import os
 import sys
+from time import time
 
 from models.factory import create_model
 from experiment.configuration import Configuration
@@ -56,8 +57,8 @@ def main(_):
     }
     p = namedtuple('Placeholders', placeholders.keys())(**placeholders)
     px = namedtuple('Placeholders', x.keys())(**x)
-    model.build(px, True, None)
-    model.build(p, False, True)
+    model.build(px, True, None, build_loss=False)
+    model.build(p, False, True, build_loss=False)
     session = tf.Session()
     saver = tf.train.Saver()
     # init variables
@@ -90,8 +91,10 @@ def main(_):
     for phase, subset, store_dir in subset_iterator:
         for example in subset:
             gt = example.disparity.squeeze()
+            start = time()
             d = session.run(model.outputs[p], fd(example)).squeeze()
-            hits, total = disp_precision(gt, d, FLAGS.max_disp, 3)
+            print("Time: {}".format(1000 * (time() - start)), file=sys.stderr)
+            hits, total = disp_precision(gt, d, model_config.get('max_disp', FLAGS.max_disp), 3)
             all_hits, all_total = results.get(phase, (0, 0))
             results[phase] = (hits + all_hits, total + all_total)
             store_disparity(d, os.path.join(store_dir, '{}.png'.format(example.name)))

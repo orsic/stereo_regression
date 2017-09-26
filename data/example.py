@@ -81,11 +81,37 @@ class SceneFlowExample(BaseExample):
         self.disparity = load_pfm(path['disparity'], self.height, self.width).astype('float32')[None, :, :, None]
 
 
+class CityscapesExample(object):
+    width = 2048
+    height = 1024
+    channels = 3
+
+    def __str__(self):
+        return self.name
+
+    def __init__(self, path):
+        self.name = path.name
+        self.left = open_image(path.left)[None, :, :, :]
+        self.right = open_image(path.right)[None, :, :, :]
+
+    def to_tfrecords(self):
+        return tf.train.Example(features=tf.train.Features(feature={
+            'channels': int64_feature(self.channels),
+            'width': int64_feature(self.width),
+            'height': int64_feature(self.height),
+            'name': bytes_feature(self.name.encode()),
+            'left': bytes_feature(self.left.tostring()),
+            'right': bytes_feature(self.right.tostring()),
+        }))
+
+
 example_classes = {
     'kitti': KittiExample,
+    'dummy': KittiExample,
     'kitti_submission': KittiOdometryExample,
     'sceneflow': SceneFlowExample,
     'odometry': KittiOdometryExample,
+    'cityscapes': CityscapesExample,
 }
 
 

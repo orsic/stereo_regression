@@ -126,9 +126,11 @@ class KittiOdometryDecoder(Decoder):
 
 decoders = {
     'kitti': GenericDecoder,
+    'dummy': GenericDecoder,
     'kitti_submission': GenericDecoder,
     'sceneflow': GenericDecoder,
     'odometry': KittiOdometryDecoder,
+    'cityscapes': KittiOdometryDecoder,
 }
 
 

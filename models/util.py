@@ -1,6 +1,9 @@
 import tensorflow as tf
 import numpy as np
 
+from collections import namedtuple
+from itertools import product
+
 
 def conv_block(inputs, order, **kwargs):
     features = kwargs.get('features')
@@ -156,3 +159,52 @@ def dssim(x, y, ksize):
     SSIM = SSIM_n / SSIM_d
 
     return tf.reduce_mean(tf.clip_by_value((1 - SSIM) / 2, 0, 1))
+
+
+Slices = namedtuple('Slices', 'H W semH semW')
+
+
+def predict_strided(session, model, example, placeholder, SH=320, SW=512):
+    def _stride_gen(begin, size, step):
+        start = begin
+        while start > step:
+            ws = max(start - size, 0)
+            we = min(ws + size, begin)
+            yield ws, we
+            start -= step
+
+    def _stride_gen2(begin, size, step):
+        return reversed(list(_stride_gen(begin, size, step)))
+
+    W, H = example.width, example.height
+    disp = np.zeros((H, W))
+    OH = SH // 2
+    OW = SW // 2
+    for (ws, we), (hs, he) in product(_stride_gen(W, 2 * SW, SW), _stride_gen2(H, 2 * SH, SH)):
+        crop_h, crop_w = (he - hs) // 4, (we - ws) // 4
+        begin_h_sem, begin_w_sem = hs // 4, ws // 4
+        end_h_sem, end_w_sem = begin_h_sem + crop_h, begin_w_sem + crop_w
+        slices = Slices(slice(hs, he), slice(ws, we), slice(begin_h_sem, end_h_sem), slice(begin_w_sem, end_w_sem))
+        feed = {
+            placeholder.l: example.left[:, slices.H, slices.W, :],
+            placeholder.r: example.right[:, slices.H, slices.W, :],
+        }
+        prediction = session.run(model.outputs[placeholder], feed_dict=feed).squeeze()
+        slice_dh = slice(hs + OH, he - OH)
+        slice_dw = slice(ws + OW, we - OW)
+        slice_ph = slice(OH, -OH)
+        slice_pw = slice(OW, -OW)
+        if hs == 0:
+            slice_dh = slice(hs, he - OH)
+            slice_ph = slice(0, -OH)
+        if ws == 0:
+            slice_dw = slice(ws, we - OW)
+            slice_pw = slice(0, -OW)
+        if he == H:
+            slice_dh = slice(hs + OH, -1)
+            slice_ph = slice(OH, -1)
+        if we == W:
+            slice_dw = slice(ws + OW, -1)
+            slice_pw = slice(OW, -1)
+        disp[slice_dh, slice_dw] = prediction[slice_ph, slice_pw]
+    return disp

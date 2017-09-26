@@ -19,13 +19,14 @@ FLAGS = flags.FLAGS
 
 def main(_):
     paths = get_paths_for_dataset(FLAGS.dataset)
-    ratios = {
-        'train_ratio': FLAGS.train_ratio,
-        'train_valid_ratio': FLAGS.train_valid_ratio,
-        'valid_ratio': FLAGS.valid_ratio,
-        'test_ratio': FLAGS.test_ratio,
-    }
-    paths = split_dataset_paths(paths, **ratios)
+    if type(paths) != dict:
+        ratios = {
+            'train_ratio': FLAGS.train_ratio,
+            'train_valid_ratio': FLAGS.train_valid_ratio,
+            'valid_ratio': FLAGS.valid_ratio,
+            'test_ratio': FLAGS.test_ratio,
+        }
+        paths = split_dataset_paths(paths, **ratios)
     dataset = Dataset(get_example_class(FLAGS.dataset), paths, FLAGS.dataset)
     create_tfrecords(dataset)
 

@@ -39,11 +39,28 @@ class UnsupervisedLoss():
             self.losses[output] = loss
 
 
+class UnsupervisedLossLR():
+    def __init__(self, flags, config):
+        self.smoothness_scale = config.get('smoothness_scale', 1e-2)
+        self.lr_consistency_scale = config.get('lr_consistency_scale', 0.1)
+        self.losses = {}
+
+    def build(self, output, placeholders):
+        with tf.variable_scope('loss'):
+            in_rec_l = reconstruct(placeholders.r, output, target_image='L')
+            in_rec_r = reconstruct(placeholders.l, output, target_image='R')
+            similarity_loss_l = tf.reduce_mean(tf.abs(placeholders.l - in_rec_l))
+            similarity_loss_r = tf.reduce_mean(tf.abs(placeholders.r - in_rec_r)) * self.lr_consistency_scale
+            smoothness_loss = tf.reduce_mean(tf.abs(laplace(output))) * self.smoothness_scale
+            loss = similarity_loss_l + smoothness_loss + similarity_loss_r
+            self.losses[output] = loss
+
+
 class UnsupervisedLossSSIM():
     def __init__(self, flags, config):
         self.smoothness_scale = config.get('smoothness_scale', 1e-2)
         self.ssim_ksize = config.get('ssim_ksize', 3)
-        self.alpha = config.get('ssim_ksize', 0.85)
+        self.alpha = config.get('ssim_alpha', 0.85)
         self.losses = {}
 
     def build(self, output, placeholders):

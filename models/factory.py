@@ -6,6 +6,7 @@ unaries = {
 
 cost_volumes = {
     'concat': cost_volume.CostVolume,
+    'sub': cost_volume.SubCostVolume,
 }
 
 regressions = {
@@ -20,6 +21,7 @@ classifications = {
 losses = {
     'abs': loss.Loss,
     'unsupervised': loss.UnsupervisedLoss,
+    'unsupervised_lr': loss.UnsupervisedLossLR,
     'unsupervised_ssim': loss.UnsupervisedLossSSIM,
 }
 

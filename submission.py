@@ -3,6 +3,8 @@ from collections import namedtuple
 import os
 import sys
 
+from clint.textui import progress
+
 from models.factory import create_model
 from experiment.configuration import Configuration
 from experiment.util import disp_precision
@@ -11,6 +13,7 @@ from data.dataset import Dataset
 from data.dataset_paths import get_paths_for_dataset
 from data.example import get_example_class
 from experiment.logger import Logger
+from models.util import predict_strided
 
 DecodeConfig = namedtuple('DecodeConfig', 'name flags is_training size shapes queues')
 
@@ -34,6 +37,8 @@ flags.DEFINE_integer('capacity', 50, 'Queue capacity')
 flags.DEFINE_integer('width', 512, 'Crop width')
 flags.DEFINE_integer('height', 256, 'Crop width')
 flags.DEFINE_integer('max_disp', 192, 'Maximum possible disparity')
+
+flags.DEFINE_bool('strided', False, 'Wether or not to predict disparities patchwise')
 
 flags.DEFINE_string('config', None, 'Configuration file')
 
@@ -69,20 +74,28 @@ def main(_):
         saver.restore(session, model_config.checkpoint)
     # init dataset
     paths = get_paths_for_dataset(FLAGS.dataset)
-    paths = {
-        'train': [],
-        'train_valid': [],
-        'valid': [],
-        'test': paths,
-    }
+    if 'test' not in paths:
+        paths = {
+            'train': [],
+            'train_valid': [],
+            'valid': [],
+            'test': paths,
+        }
     dataset = Dataset(get_example_class(FLAGS.dataset), paths, FLAGS.dataset)
     fd = lambda x: {p.l: x.left, p.r: x.right}
     reconstructions = os.path.join(model_config.directory, 'submission')
     os.makedirs(reconstructions, exist_ok=True)
-    for example in dataset.test:
-        print(example.name)
-        d = session.run(model.outputs[p], fd(example)).squeeze()
-        store_disparity(d, os.path.join(reconstructions, '{}.png'.format(example.name)))
+    for generator in dataset:
+        rec_dir = os.path.join(reconstructions, generator.name)
+        os.makedirs(rec_dir, exist_ok=True)
+        with progress.Bar(label=generator.name, expected_size=generator.length) as bar:
+            for i, example in enumerate(generator.examples):
+                bar.show(i)
+                if FLAGS.strided:
+                    d = predict_strided(session, model, example, p)
+                else:
+                    d = session.run(model.outputs[p], fd(example)).squeeze()
+                store_disparity(d, os.path.join(rec_dir, '{}.png'.format(example.name)))
 
 
 if __name__ == '__main__':
